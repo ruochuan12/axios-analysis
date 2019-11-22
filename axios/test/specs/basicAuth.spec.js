@@ -1,0 +1,3 @@
+describe('basicAuth', function () {
+  setupBasicAuthTest();
+});
