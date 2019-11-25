@@ -26,17 +26,21 @@ function createInstance(defaultConfig) {
 }
 
 // Create the default instance to be exported
+// 导出 创建默认实例
 var axios = createInstance(defaults);
 
 // Expose Axios class to allow class inheritance
+// 暴露 Axios calss 允许 class 继承
 axios.Axios = Axios;
 
 // Factory for creating new instances
+// 工厂模式 创建新的实例
 axios.create = function create(instanceConfig) {
   return createInstance(mergeConfig(axios.defaults, instanceConfig));
 };
 
 // Expose Cancel & CancelToken
+// 导出 Cancel 和 CancelToken
 axios.Cancel = require('./cancel/Cancel');
 axios.CancelToken = require('./cancel/CancelToken');
 axios.isCancel = require('./cancel/isCancel');
