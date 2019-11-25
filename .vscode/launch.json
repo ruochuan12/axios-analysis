@@ -8,17 +8,28 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceFolder}/axios/index.js",
+            "program": "${workspaceFolder}/axios/sandbox/client.js",
             "skipFiles": [
                 "<node_internals>/**"
             ]
         },
-        // {
-        //     "type": "chrome",
-        //     "request": "launch",
-        //     "name": "Launch Chrome against localhost",
-        //     "url": "http://localhost:8080",
-        //     "webRoot": "${workspaceFolder}"
-        // }
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/axios/sandbox/server.js",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/axios/index",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        },
     ]
 }
