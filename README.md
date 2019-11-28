@@ -19,7 +19,75 @@ axios-analysis
 
 umi-request
 
-## vscode 调试 axios 源码方法
+## chrome 和 vscode  调试 axios 源码方法
+
+### chrome 调试浏览器环境 的 axios
+
+前不久，在知乎回答了一个问题[一年内]()
+
+调试方法
+
+`axios`打包后有`sourcemap`文件。
+
+```bash
+git clone https://github.com/lxchuan12/axios-analysis.git
+cd axios-analaysis/axios
+npm install
+npm run examples
+# open [http://localhost:3000](http://localhost:3000)
+#  source 控制面板  // webpack     .     lib 目录下，根据情况自行断点调试
+```
+
+把代码克隆下来后：
+修改 `axios/examples/server.js` 以下两行代码：
+
+```js
+// ...
+server = http.createServer(function (req, res) {
+  var url = req.url;
+// Process axios itself
+  if (/axios\.min\.js$/.test(url)) {
+    // 原来的代码 是 axios.min.js
+    // pipeFileToResponse(res, '../dist/axios.min.js', 'text/javascript');
+    pipeFileToResponse(res, '../dist/axios.js', 'text/javascript');
+    return;
+  }
+  if (/axios\.min\.map$/.test(url)) {
+    // 原来的代码 是 axios.min.map
+     // pipeFileToResponse(res, '../dist/axios.min.map', 'text/javascript');
+    pipeFileToResponse(res, '../dist/axios.min.map', 'text/javascript');
+    return;
+  }
+  // ...
+}
+```
+
+### vscode 调试 node 环境的 axios
+
+在根目录下 `axios-analysis/`
+创建`.vscode/launch`文件如下：
+
+```json
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/axios/sandbox/client.js",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        },
+    ]
+}
+```
+
+按`F5`开始调试即可，按照自己的情况断点调试。
 
 ## axios 原理
 
@@ -87,11 +155,11 @@ return adapter(config)
 
 ## 推荐阅读
 
-[@叫我小明呀：Axios 源码解析](https://juejin.im/post/5cb5d9bde51d456e62545abc)
-[@尼库尼库桑：深入浅出 axios 源码](https://zhuanlan.zhihu.com/p/37962469)
-[@小贼先生_ronffy：Axios源码深度剖析 - AJAX新王者](https://juejin.im/post/5b0ba2d56fb9a00a1357a334)
-[逐行解析Axios源码](https://juejin.im/post/5d501512518825159e3d7be6)
-[[译]axios 是如何封装 HTTP 请求的](https://juejin.im/post/5d906269f265da5ba7451b02)
+[@叫我小明呀：Axios 源码解析](https://juejin.im/post/5cb5d9bde51d456e62545abc)<br>
+[@尼库尼库桑：深入浅出 axios 源码](https://zhuanlan.zhihu.com/p/37962469)<br>
+[@小贼先生_ronffy：Axios源码深度剖析 - AJAX新王者](https://juejin.im/post/5b0ba2d56fb9a00a1357a334)<br>
+[逐行解析Axios源码](https://juejin.im/post/5d501512518825159e3d7be6)<br>
+[[译]axios 是如何封装 HTTP 请求的](https://juejin.im/post/5d906269f265da5ba7451b02)<br>
 
 ## 笔者精选文章
 
