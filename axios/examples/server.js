@@ -78,11 +78,15 @@ server = http.createServer(function (req, res) {
 
   // Process axios itself
   if (/axios\.min\.js$/.test(url)) {
-    pipeFileToResponse(res, '../dist/axios.min.js', 'text/javascript');
+    // 原来的代码 是 axios.min.js
+    // pipeFileToResponse(res, '../dist/axios.min.js', 'text/javascript');
+    pipeFileToResponse(res, '../dist/axios.js', 'text/javascript');
     return;
   }
   if (/axios\.min\.map$/.test(url)) {
-    pipeFileToResponse(res, '../dist/axios.min.map', 'text/javascript');
+    // 原来的代码 是 axios.min.map
+    // pipeFileToResponse(res, '../dist/axios.min.map', 'text/javascript');
+    pipeFileToResponse(res, '../dist/axios.map', 'text/javascript');
     return;
   }
   if (/axios\.amd\.min\.js$/.test(url)) {
