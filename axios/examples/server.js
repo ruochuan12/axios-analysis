@@ -76,6 +76,9 @@ dirs = listDirs(__dirname);
 server = http.createServer(function (req, res) {
   var url = req.url;
 
+  // 调试 examples
+  console.log(url);
+
   // Process axios itself
   if (/axios\.min\.js$/.test(url)) {
     // 原来的代码 是 axios.min.js
@@ -83,7 +86,9 @@ server = http.createServer(function (req, res) {
     pipeFileToResponse(res, '../dist/axios.js', 'text/javascript');
     return;
   }
-  if (/axios\.min\.map$/.test(url)) {
+  // 原来的代码 是 axios.min.map
+  // if (/axios\.min.map$/.test(url)) {
+  if (/axios\.map$/.test(url)) {
     // 原来的代码 是 axios.min.map
     // pipeFileToResponse(res, '../dist/axios.min.map', 'text/javascript');
     pipeFileToResponse(res, '../dist/axios.map', 'text/javascript');

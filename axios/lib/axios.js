@@ -34,7 +34,7 @@ var axios = createInstance(defaults);
 axios.Axios = Axios;
 
 // Factory for creating new instances
-// 工厂模式 创建新的实例
+// 工厂模式 创建新的实例 用户可以自定义一些参数
 axios.create = function create(instanceConfig) {
   return createInstance(mergeConfig(axios.defaults, instanceConfig));
 };
@@ -46,6 +46,7 @@ axios.CancelToken = require('./cancel/CancelToken');
 axios.isCancel = require('./cancel/isCancel');
 
 // Expose all/spread
+// 导出 all 和 spread API
 axios.all = function all(promises) {
   return Promise.all(promises);
 };
@@ -54,4 +55,6 @@ axios.spread = require('./helpers/spread');
 module.exports = axios;
 
 // Allow use of default import syntax in TypeScript
+// 也就是可以以下方式引入
+// import axios from 'axios';
 module.exports.default = axios;
