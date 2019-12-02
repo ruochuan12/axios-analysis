@@ -16,6 +16,11 @@
 TODO:
 **导读**<br>
 
+TODO: 提问
+
+4.怎么实现
+5.简述 `axios` 流程
+
 axios-analysis
 
 [umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md)
@@ -73,6 +78,14 @@ npm start
 ```
 
 按`F5`开始调试即可，按照自己的情况断点调试。
+
+## 先看 axios 是什么
+
+在控制台打印出，`axios`。
+
+```js
+console.log({axios: axios});
+```
 
 ## axios 原理
 
