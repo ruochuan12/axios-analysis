@@ -79,13 +79,27 @@ npm start
 
 按`F5`开始调试即可，按照自己的情况断点调试。
 
-## 先看 axios 是什么
+## 先看 axios 结构是怎样的
 
-在控制台打印出，`axios`。
+说完了调试方法，直接在 `chrome` 浏览器中调试。
+
+```bash
+git clone https://github.com/lxchuan12/axios-analysis.git
+cd axios-analaysis/axios
+npm install
+npm start
+```
+
+打开 http://localhost:3000，在控制台打印出，`axios`。
 
 ```js
 console.log({axios: axios});
 ```
+
+点开来看，`axios` 的结构是怎样的，先有一个大概印象。
+
+TODO: 画图。笔者画了一张图表示。
+
 
 ## axios 原理
 
@@ -238,7 +252,7 @@ InterceptorManager.prototype.forEach = function(){}
 
 ## 实例结合
 
-### 调用栈
+### 调用栈流程
 
 知道 `axios` 使用了`XMLHttpRequest`。
 可以在项目中搜索：`new XMLHttpRequest`。
@@ -307,6 +321,8 @@ var adapter = config.adapter || defaults.adapter;
 
 return adapter(config)
 ```
+
+### adapter
 
 ## 总结
 
