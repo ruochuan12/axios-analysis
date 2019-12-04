@@ -43,7 +43,7 @@ axios-analysis
 `axios`打包后有`sourcemap`文件。
 
 ```bash
-# 可以克隆我的这个仓库代码
+# 可以克隆笔者的这个仓库代码
 git clone https://github.com/lxchuan12/axios-analysis.git
 cd axios-analaysis/axios
 npm install
@@ -81,8 +81,6 @@ npm start
 
 ## 先看 axios 结构是怎样的
 
-说完了调试方法，直接在 `chrome` 浏览器中调试。
-
 ```bash
 git clone https://github.com/lxchuan12/axios-analysis.git
 cd axios-analaysis/axios
@@ -90,20 +88,20 @@ npm install
 npm start
 ```
 
+按照上文说的调试方法，` npm start `后，直接在 `chrome` 浏览器中调试。
 打开 http://localhost:3000，在控制台打印出，`axios`。
 
 ```js
 console.log({axios: axios});
 ```
 
-点开来看，`axios` 的结构是怎样的，先有一个大概印象。
+层层点开来看，`axios` 的结构是怎样的，先有一个大概印象。
 
 TODO: 画图。笔者画了一张图表示。
 
-
 ## axios 原理
 
-## axios 初始化
+## axios 源码 初始化
 
 看源码第一步，先看`package.json`。一般都会申明`main`主入口文件。
 
@@ -357,6 +355,6 @@ return adapter(config)
 
 ## 欢迎加微信交流 微信公众号
 
-可能比较有趣的微信公众号，长按扫码关注。欢迎加我微信lxchuan12（注明来源，基本来者不拒），拉您进【前端视野交流群】，长期交流学习~
+可能比较有趣的微信公众号，长按扫码关注。欢迎加笔者微信lxchuan12（注明来源，基本来者不拒），拉您进【前端视野交流群】，长期交流学习~
 
 ![若川视野](https://github.com/lxchuan12/blog/raw/master/docs/about/wechat-official-accounts-mini.jpg)
