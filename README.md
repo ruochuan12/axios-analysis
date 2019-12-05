@@ -335,6 +335,7 @@ return adapter(config)
 [@小贼先生_ronffy：Axios源码深度剖析 - AJAX新王者](https://juejin.im/post/5b0ba2d56fb9a00a1357a334)<br>
 [逐行解析Axios源码](https://juejin.im/post/5d501512518825159e3d7be6)<br>
 [[译]axios 是如何封装 HTTP 请求的](https://juejin.im/post/5d906269f265da5ba7451b02)<br>
+[知乎@Lee : TypeScript 重构 Axios 经验分享](https://zhuanlan.zhihu.com/p/50859466)
 
 ## 笔者精选文章
 
