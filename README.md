@@ -201,7 +201,7 @@ function Axios(instanceConfig) {
     response: new InterceptorManager()
   };
 }
-Axios.prototype.request = function(){
+Axios.prototype.request = function(config){
   // 省略，这个是核心方法，后文结合例子详细描述
   // code ...
   var promise = Promise.resolve(config);
@@ -252,11 +252,12 @@ InterceptorManager.prototype.forEach = function(){}
 
 ### 调用栈流程
 
+如果不想一步步调试，有个偷巧的方法。
 知道 `axios` 使用了`XMLHttpRequest`。
 可以在项目中搜索：`new XMLHttpRequest`。
 定位到文件 `axios/lib/adapters/xhr.js`
 在这条语句 `var request = new XMLHttpRequest();`
-`chrome` 浏览器中 打个断点，再根据调用栈来细看具体函数等实现。
+`chrome` 浏览器中 打个断点调试下，再根据调用栈来细看具体函数等实现。
 
 `Call Stack`
 
