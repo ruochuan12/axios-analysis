@@ -99,6 +99,8 @@ console.log({axios: axios});
 
 TODO: 画图。笔者画了一张图表示。
 
+![axios 结构关系图](./images/axios-instance.png)
+
 ## axios 原理
 
 ## axios 源码 初始化
@@ -127,12 +129,17 @@ module.exports = require('./lib/axios');
 
 ```js
 // lib/axios
+// 严格模式
 'use strict';
-
+// 引入 utils 对象，有很多工具方法。
 var utils = require('./utils');
+// 引入 bind 方法
 var bind = require('./helpers/bind');
+// 
 var Axios = require('./core/Axios');
+// 合并配置方法
 var mergeConfig = require('./core/mergeConfig');
+// 引入默认配置
 var defaults = require('./defaults');
 
 /**
@@ -159,7 +166,7 @@ function createInstance(defaultConfig) {
 var axios = createInstance(defaults);
 
 // Expose Axios class to allow class inheritance
-// 暴露 Axios calss 允许 class 继承
+// 暴露 Axios class 允许 class 继承 也就是可以 new axios.Axios()
 axios.Axios = Axios;
 
 // Factory for creating new instances
@@ -168,6 +175,99 @@ axios.create = function create(instanceConfig) {
   return createInstance(mergeConfig(axios.defaults, instanceConfig));
 };
 
+// 省略一些代码：后文讲述
+```
+
+### 工具方法
+
+#### bind
+
+`./helpers/bind`
+
+```js
+'use strict';
+
+// 返回一个新的函数 wrap 
+module.exports = function bind(fn, thisArg) {
+  return function wrap() {
+    var args = new Array(arguments.length);
+    for (var i = 0; i < args.length; i++) {
+      args[i] = arguments[i];
+    }
+    return fn.apply(thisArg, args);
+  };
+};
+```
+
+#### utils.extend
+
+```js
+/**
+ * Extends object a by mutably adding to it the properties of object b.
+ *
+ * @param {Object} a The object to be extended
+ * @param {Object} b The object to copy properties from
+ * @param {Object} thisArg The object to bind function to
+ * @return {Object} The resulting value of object a
+ */
+function extend(a, b, thisArg) {
+  forEach(b, function assignValue(val, key) {
+    if (thisArg && typeof val === 'function') {
+      a[key] = bind(val, thisArg);
+    } else {
+      a[key] = val;
+    }
+  });
+  return a;
+}
+```
+
+#### utils.forEach
+
+遍历数组和对象。设计模式称之为迭代器模式。很多源码都有类似这样的遍历函数。比如大家熟知的`jQuery` `$.each`。
+
+```js
+/**
+ * Iterate over an Array or an Object invoking a function for each item.
+ *
+ * If `obj` is an Array callback will be called passing
+ * the value, index, and complete array for each item.
+ *
+ * If 'obj' is an Object callback will be called passing
+ * the value, key, and complete object for each property.
+ *
+ * @param {Object|Array} obj The object to iterate
+ * @param {Function} fn The callback to invoke for each item
+ */
+function forEach(obj, fn) {
+  // Don't bother if no value provided
+  if (obj === null || typeof obj === 'undefined') {
+    return;
+  }
+
+  // Force an array if not already something iterable
+  if (typeof obj !== 'object') {
+    /*eslint no-param-reassign:0*/
+    obj = [obj];
+  }
+
+  if (isArray(obj)) {
+    // Iterate over array values
+    for (var i = 0, l = obj.length; i < l; i++) {
+      fn.call(null, obj[i], i, obj);
+    }
+  } else {
+    // Iterate over object keys
+    for (var key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        fn.call(null, obj[key], key, obj);
+      }
+    }
+  }
+}
+```
+
+```js
 // Expose Cancel & CancelToken
 // 导出 Cancel 和 CancelToken
 axios.Cancel = require('./cancel/Cancel');
