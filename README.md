@@ -16,6 +16,11 @@
 TODO:
 **导读**<br>
 
+本文学习的版本是`v0.19.0`。克隆的官方仓库的`master`分支。
+截至目前（2019年12月），最新一次`commit`是`a17c70cb5ae4acd7`，`Fix CI build failure (#2570)`。
+
+本文仓库在这里[若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)。求个`star`呀。
+
 TODO: 提问
 
 4.怎么实现
@@ -77,7 +82,7 @@ npm start
 }
 ```
 
-按`F5`开始调试即可，按照自己的情况断点调试。
+按`F5`开始调试即可，按照自己的情况，单步跳过`（F10）`、单步调试`（F11）`断点调试。
 
 ## 先看 axios 结构是怎样的
 
@@ -89,7 +94,7 @@ npm start
 ```
 
 按照上文说的调试方法，` npm start `后，直接在 `chrome` 浏览器中调试。
-打开 http://localhost:3000，在控制台打印出，`axios`。
+打开 http://localhost:3000，在控制台打印出`axios`，估计很多人都没打印出来看过。
 
 ```js
 console.log({axios: axios});
@@ -97,9 +102,15 @@ console.log({axios: axios});
 
 层层点开来看，`axios` 的结构是怎样的，先有一个大概印象。
 
-TODO: 画图。笔者画了一张图表示。
+笔者画了一张图表示。
 
 ![axios 结构关系图](./images/axios-instance.png)
+
+看完结构图，接下来看具体源码的实现。可以跟着断点调试一下。
+
+**断点调试要领：**<br>
+**赋值语句可以一步跳过，看返回值即可，后续详细再看。**<br>
+**函数执行需要断点跟着看，也可以结合注释和上下文倒推这个函数做了什么。**<br>
 
 ## axios 原理
 
@@ -125,9 +136,20 @@ TODO: 画图。笔者画了一张图表示。
 module.exports = require('./lib/axios');
 ```
 
-### `lib/axios`文件
+### `lib/axios.js`主文件
+
+`axios.js`文件 代码相对比较多。分为三部分展开叙述。
+
+>1. 第一部分：引入一些工具函数`utils`、`Axios`构造函数、默认配置`defaults`等。<br>
+>2. 第二部分：是生成实例对象 `axios`、`axios.Axios`、`axios.create`等<br>
+>3. 第三部分取消相关API实现，还有`all`、`spread`、导出等实现。<br>
+
+#### 第一部分
+
+引入一些工具函数`utils`、`Axios`构造函数、默认配置`defaults`等。
 
 ```js
+// 第一部分：
 // lib/axios
 // 严格模式
 'use strict';
@@ -135,13 +157,19 @@ module.exports = require('./lib/axios');
 var utils = require('./utils');
 // 引入 bind 方法
 var bind = require('./helpers/bind');
-// 
+// 构造函数 Axios 核心
 var Axios = require('./core/Axios');
 // 合并配置方法
 var mergeConfig = require('./core/mergeConfig');
 // 引入默认配置
 var defaults = require('./defaults');
+```
 
+#### 第二部分
+
+是生成实例对象 `axios`、`axios.Axios`、`axios.create`等
+
+```js
 /**
  * Create an instance of Axios
  *
@@ -174,19 +202,16 @@ axios.Axios = Axios;
 axios.create = function create(instanceConfig) {
   return createInstance(mergeConfig(axios.defaults, instanceConfig));
 };
-
-// 省略一些代码：后文讲述
 ```
 
-### 工具方法
+看完第二部分，里面涉及几个工具函数，如`bind`、`extend`。接下来讲述这几个工具方法。
 
-#### bind
+#### 工具方法之 bind
 
 `./helpers/bind`
 
 ```js
 'use strict';
-
 // 返回一个新的函数 wrap 
 module.exports = function bind(fn, thisArg) {
   return function wrap() {
@@ -199,7 +224,10 @@ module.exports = function bind(fn, thisArg) {
 };
 ```
 
-#### utils.extend
+传递两个参数函数和`thisArg`指向。
+把参数`arguments`生成数组，最后调用返回参数结构。
+
+#### 工具方法之 utils.extend
 
 ```js
 /**
@@ -222,20 +250,12 @@ function extend(a, b, thisArg) {
 }
 ```
 
-#### utils.forEach
+#### 工具方法之 utils.forEach
 
 遍历数组和对象。设计模式称之为迭代器模式。很多源码都有类似这样的遍历函数。比如大家熟知的`jQuery` `$.each`。
 
 ```js
 /**
- * Iterate over an Array or an Object invoking a function for each item.
- *
- * If `obj` is an Array callback will be called passing
- * the value, index, and complete array for each item.
- *
- * If 'obj' is an Object callback will be called passing
- * the value, key, and complete object for each property.
- *
  * @param {Object|Array} obj The object to iterate
  * @param {Function} fn The callback to invoke for each item
  */
@@ -267,6 +287,10 @@ function forEach(obj, fn) {
 }
 ```
 
+#### 第三部分
+
+取消相关API实现，还有`all`、`spread`、导出等实现。
+
 ```js
 // Expose Cancel & CancelToken
 // 导出 Cancel 和 CancelToken
@@ -289,9 +313,43 @@ module.exports = axios;
 module.exports.default = axios;
 ```
 
+这里介绍下 `spread`，取消的`API`暂时不做分析。
+
+假设你有这样的需求。
+
+```js
+ function f(x, y, z) {}
+ var args = [1, 2, 3];
+ f.apply(null, args);
+```
+
+那么可以用`spread`方法。用法：
+
+```js
+axios.spread(function(x, y, z) {})([1, 2, 3]);
+```
+
+实现也比较简单。源码实现：
+
+```js
+/**
+ * @param {Function} callback
+ * @returns {Function}
+ */
+module.exports = function spread(callback) {
+  return function wrap(arr) {
+    return callback.apply(null, arr);
+  };
+};
+```
+
+上文
+
 ### Axios
 
 `lib/core/Axios.js`
+
+构造函数`Axios`。
 
 ```js
 function Axios(instanceConfig) {
@@ -301,6 +359,9 @@ function Axios(instanceConfig) {
     response: new InterceptorManager()
   };
 }
+```
+
+```js
 Axios.prototype.request = function(config){
   // 省略，这个是核心方法，后文结合例子详细描述
   // code ...
@@ -336,28 +397,129 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 module.exports = Axios;
 ```
 
-### InterceptorManager 拦截器
+### InterceptorManager 拦截器管理构造函数
+
+请求前拦截，和请求后拦截。<br>
+在`Axios.prototype.request`函数里使用，具体怎么实现的拦截的，后文详细讲述。<br>
+
+[axios github 仓库 拦截器文档](https://github.com/axios/axios#interceptors)
+
+如何使用：
+
+```js
+// Add a request interceptor
+// 添加请求前拦截器
+axios.interceptors.request.use(function (config) {
+  // Do something before request is sent
+  return config;
+}, function (error) {
+  // Do something with request error
+  return Promise.reject(error);
+});
+
+// Add a response interceptor
+// 添加请求后拦截器
+axios.interceptors.response.use(function (response) {
+  // Any status code that lie within the range of 2xx cause this function to trigger
+  // Do something with response data
+  return response;
+}, function (error) {
+  // Any status codes that falls outside the range of 2xx cause this function to trigger
+  // Do something with response error
+  return Promise.reject(error);
+});
+```
+
+如果用完拦截器想移除，用`eject`方法。
+
+```js
+const myInterceptor = axios.interceptors.request.use(function () {/*...*/});
+axios.interceptors.request.eject(myInterceptor);
+```
+
+拦截器也可以添加自定义的实例上。
+
+```js
+const instance = axios.create();
+instance.interceptors.request.use(function () {/*...*/});
+```
+
+源码实现：
+
+构造函数，`handles` 存储拦截器函数。
 
 ```js
 function InterceptorManager() {
   this.handlers = [];
 }
-// 声明了三个方法：使用、移除、遍历
-InterceptorManager.prototype.use = function(){}
-InterceptorManager.prototype.eject = function(){}
-InterceptorManager.prototype.forEach = function(){}
+```
+
+接下来声明了三个方法：使用、移除、遍历。
+
+#### InterceptorManager.prototype.use
+
+传递两个函数作为参数，返回数字 ID，用于移除拦截器
+
+```js
+/**
+ * @param {Function} fulfilled The function to handle `then` for a `Promise`
+ * @param {Function} rejected The function to handle `reject` for a `Promise`
+ *
+ * @return {Number} An ID used to remove interceptor later
+ */
+InterceptorManager.prototype.use = function use(fulfilled, rejected) {
+  this.handlers.push({
+    fulfilled: fulfilled,
+    rejected: rejected
+  });
+  return this.handlers.length - 1;
+};
+```
+
+#### InterceptorManager.prototype.eject
+
+根据 use 返回的 ID 移除 拦截器
+
+```js
+/**
+ * @param {Number} id The ID that was returned by `use`
+ */
+InterceptorManager.prototype.eject = function eject(id) {
+  if (this.handlers[id]) {
+    this.handlers[id] = null;
+  }
+};
+```
+
+#### InterceptorManager.prototype.forEach
+
+遍历执行 拦截器
+
+```js
+/**
+ * @param {Function} fn The function to call for each interceptor
+ */
+InterceptorManager.prototype.forEach = function forEach(fn) {
+  utils.forEach(this.handlers, function forEachHandler(h) {
+    if (h !== null) {
+      fn(h);
+    }
+  });
+};
 ```
 
 ## 实例结合
 
-### 调用栈流程
+上文叙述的调试时运行`npm start` 是用`axios/sandbox/client.html`路径的文件作为示例的。
 
-如果不想一步步调试，有个偷巧的方法。
-知道 `axios` 使用了`XMLHttpRequest`。
-可以在项目中搜索：`new XMLHttpRequest`。
-定位到文件 `axios/lib/adapters/xhr.js`
-在这条语句 `var request = new XMLHttpRequest();`
-`chrome` 浏览器中 打个断点调试下，再根据调用栈来细看具体函数等实现。
+### 先看调用栈流程
+
+如果不想一步步调试，有个偷巧的方法。<br>
+知道 `axios` 使用了`XMLHttpRequest`。<br>
+可以在项目中搜索：`new XMLHttpRequest`。<br>
+定位到文件 `axios/lib/adapters/xhr.js`<br>
+在这条语句 `var request = new XMLHttpRequest();`<br>
+`chrome` 浏览器中 打个断点调试下，再根据调用栈来细看具体函数等实现。<br>
 
 `Call Stack`
 
@@ -371,10 +533,14 @@ wrap (bind.js:10)
 submit.onclick ((index):138)
 ```
 
+### Axios.prototype.request 请求核心方法
+
 ```js
 Axios.prototype.request = function request(config) {
   /*eslint no-param-reassign:0*/
   // Allow for axios('example/url'[, config]) a la fetch API
+  // 这一段代码 其实就是 使 axios('lxchuan12.cn', [, config])
+  // config 参数可以省略
   if (typeof config === 'string') {
     config = arguments[1] || {};
     config.url = arguments[0];
@@ -382,9 +548,11 @@ Axios.prototype.request = function request(config) {
     config = config || {};
   }
 
+ // 合并默认参数和用户传递的参数
   config = mergeConfig(this.defaults, config);
 
   // Set config.method
+  // 设置 请求方法。
   if (config.method) {
     config.method = config.method.toLowerCase();
   } else if (this.defaults.method) {
@@ -392,7 +560,12 @@ Axios.prototype.request = function request(config) {
   } else {
     config.method = 'get';
   }
+  // Hook up interceptors middleware
+  // 这段拆开到后文再讲述
+};
+```
 
+```js
   // Hook up interceptors middleware
   var chain = [dispatchRequest, undefined];
   var promise = Promise.resolve(config);
@@ -410,26 +583,119 @@ Axios.prototype.request = function request(config) {
   }
 
   return promise;
+```
+
+这段代码相对比较绕，但其实也容易懂，笔者画了一张图表示TODO:。最后会调用`dispatchRequest`方法。
+
+### dispatchRequest  最终派发请求
+
+```js
+'use strict';
+
+var utils = require('./../utils');
+var transformData = require('./transformData');
+var isCancel = require('../cancel/isCancel');
+var defaults = require('../defaults');
+
+/**
+ * Throws a `Cancel` if cancellation has been requested.
+ */
+function throwIfCancellationRequested(config) {
+  if (config.cancelToken) {
+    config.cancelToken.throwIfRequested();
+  }
+}
+
+/**
+ * Dispatch a request to the server using the configured adapter.
+ *
+ * @param {object} config The config that is to be used for the request
+ * @returns {Promise} The Promise to be fulfilled
+ */
+module.exports = function dispatchRequest(config) {
+  throwIfCancellationRequested(config);
+
+  // Ensure headers exist
+  config.headers = config.headers || {};
+
+  // Transform request data
+  config.data = transformData(
+    config.data,
+    config.headers,
+    config.transformRequest
+  );
+
+  // Flatten headers
+  config.headers = utils.merge(
+    config.headers.common || {},
+    config.headers[config.method] || {},
+    config.headers || {}
+  );
+
+  utils.forEach(
+    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
+    function cleanHeaderConfig(method) {
+      delete config.headers[method];
+    }
+  );
+
+  var adapter = config.adapter || defaults.adapter;
+
+  return adapter(config).then(function onAdapterResolution(response) {
+    throwIfCancellationRequested(config);
+
+    // Transform response data
+    response.data = transformData(
+      response.data,
+      response.headers,
+      config.transformResponse
+    );
+
+    return response;
+  }, function onAdapterRejection(reason) {
+    if (!isCancel(reason)) {
+      throwIfCancellationRequested(config);
+
+      // Transform response data
+      if (reason && reason.response) {
+        reason.response.data = transformData(
+          reason.response.data,
+          reason.response.headers,
+          config.transformResponse
+        );
+      }
+    }
+
+    return Promise.reject(reason);
+  });
 };
 ```
 
-### dispatchRequest
+### adapter
 
 ```js
-var adapter = config.adapter || defaults.adapter;
-
-return adapter(config)
+module.exports = function xhrAdapter(config) {
+  return new Promise(function dispatchXhrRequest(resolve, reject) {
+    
+  });
+}
 ```
-
-### adapter
 
 ## 总结
 
 `Axios` 源码相对不多，打包后一千多行，比较容易看完，非常值得学习。
 
+TODO:
+
+[若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)<br>
+
 如果读者发现有不妥或可改善之处，再或者哪里没写明白的地方，欢迎评论指出。另外觉得写得不错，对您有些许帮助，可以点赞、评论、转发分享，也是对笔者的一种支持，非常感谢呀。
 
 ## 推荐阅读
+
+[官方axios github 仓库](https://github.com/axios/axios)<br>
+
+写文章前，搜索了以下几篇文章泛读了一下。看懂了我这篇的基础上，有兴趣在对比看看以下这几篇，看起来也快。
 
 [@叫我小明呀：Axios 源码解析](https://juejin.im/post/5cb5d9bde51d456e62545abc)<br>
 [@尼库尼库桑：深入浅出 axios 源码](https://zhuanlan.zhihu.com/p/37962469)<br>
