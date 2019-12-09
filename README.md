@@ -28,7 +28,6 @@ TODO: 提问
 
 axios-analysis
 
-[umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md)
 
 ## chrome 和 vscode  调试 axios 源码方法
 
@@ -587,7 +586,7 @@ Axios.prototype.request = function request(config) {
 
 这段代码相对比较绕，但其实也容易懂，笔者画了一张图表示TODO:。最后会调用`dispatchRequest`方法。
 
-### dispatchRequest  最终派发请求
+### dispatchRequest 最终派发请求
 
 ```js
 'use strict';
@@ -645,6 +644,7 @@ module.exports = function dispatchRequest(config) {
     throwIfCancellationRequested(config);
 
     // Transform response data
+    // 转换响应的数据
     response.data = transformData(
       response.data,
       response.headers,
@@ -657,6 +657,7 @@ module.exports = function dispatchRequest(config) {
       throwIfCancellationRequested(config);
 
       // Transform response data
+      // 转换响应的数据
       if (reason && reason.response) {
         reason.response.data = transformData(
           reason.response.data,
@@ -671,12 +672,44 @@ module.exports = function dispatchRequest(config) {
 };
 ```
 
-### adapter
+### adapter 适配器 真正发送请求
+
+```js
+var adapter = config.adapter || defaults.adapter;
+```
+
+看了上文的 `adapter`，可以知道支持用户自定义。比如可以通过微信小程序 `wx.request`的 也写一个 `adapter`。<br>
+接着来看下 `defaults.ddapter`。<br>
+文件路径：`axios/lib/defaults.js`
+
+根据当前环境引入，如果是浏览器环境引入`xhr`，是`node`环境则引入`http`。<br>
+类似判断`node`环境，也在[`sentry-javascript`](https://github.com/getsentry/sentry-javascript)源码中有看到。<br>
+
+```js
+function getDefaultAdapter() {
+  var adapter;
+  if (typeof XMLHttpRequest !== 'undefined') {
+    // For browsers use XHR adapter
+    adapter = require('./adapters/xhr');
+  } else if (typeof process !== 'undefined' && Object.prototype.toString.call(process) === '[object process]') {
+    // For node use HTTP adapter
+    adapter = require('./adapters/http');
+  }
+  return adapter;
+}
+var defaults = {
+  adapter: getDefaultAdapter(),
+  // ...
+};
+```
+
+可以发现
+
+`xhr`
 
 ```js
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
-    
   });
 }
 ```
@@ -684,6 +717,9 @@ module.exports = function xhrAdapter(config) {
 ## 总结
 
 `Axios` 源码相对不多，打包后一千多行，比较容易看完，非常值得学习。
+
+[KoAJAX](https://github.com/EasyWebApp/KoAJAX)
+[umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md)
 
 TODO:
 
