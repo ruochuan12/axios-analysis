@@ -11,7 +11,7 @@
 >4.[学习 sentry 源码整体架构，打造属于自己的前端异常监控SDK](https://juejin.im/post/5dba5a39e51d452a2378348a)<br>
 >5.[学习 vuex 源码整体架构，打造属于自己的状态管理库](https://juejin.im/post/5dd4e61a6fb9a05a5c010af0)<br>
 
-感兴趣的读者可以点击阅读。下一篇可能是学习 `axios` 源码。
+感兴趣的读者可以点击阅读。本文比较长，建议收藏后在电脑上阅读，安装文中调试方式自己执行或许更能吸收消化。
 
 TODO:
 **导读**<br>
@@ -28,8 +28,7 @@ TODO: 提问
 
 axios-analysis
 
-
-## chrome 和 vscode  调试 axios 源码方法
+## chrome 和 vscode 调试 axios 源码方法
 
 前不久，笔者在知乎回答了一个问题[一年内的前端看不懂前端框架源码怎么办？](https://www.zhihu.com/question/350289336/answer/910970733)
 主要有四点：<br>
@@ -55,6 +54,45 @@ npm start
 # open [http://localhost:3000](http://localhost:3000)
 # chrome F12 source 控制面板  webpack//   .  lib 目录下，根据情况自行断点调试
 ```
+
+本文就是通过上述的例子`axios/sandbox/client.html`来调试的。
+
+顺便简单提下调试`example`的例子，虽然文章最开始时写了，后来又删了，最后想想还是加下。
+
+找到文件`axios/examples/server.js`，修改代码如下：
+
+```js
+server = http.createServer(function (req, res) {
+  var url = req.url;
+  // 调试 examples
+  console.log(url);
+  // Process axios itself
+  if (/axios\.min\.js$/.test(url)) {
+    // 原来的代码 是 axios.min.js
+    // pipeFileToResponse(res, '../dist/axios.min.js', 'text/javascript');
+    pipeFileToResponse(res, '../dist/axios.js', 'text/javascript');
+    return;
+  }
+  // 原来的代码 是 axios.min.map
+  // if (/axios\.min.map$/.test(url)) {
+  if (/axios\.map$/.test(url)) {
+    // 原来的代码 是 axios.min.map
+    // pipeFileToResponse(res, '../dist/axios.min.map', 'text/javascript');
+    pipeFileToResponse(res, '../dist/axios.map', 'text/javascript');
+    return;
+  }
+}
+```
+
+```bash
+# 上述安装好依赖后
+# npm run examples 不能同时开启，默认都是3000端口
+# 可以指定端口 1000
+# npm run examples ===  node ./examples/server.js
+node ./examples/server.js -p 5000
+```
+
+打开[http://localhost:5000](http://localhost:5000)，然后就可以开心的调试`examples`。
 
 ### vscode 调试 node 环境的 axios
 
@@ -82,6 +120,8 @@ npm start
 ```
 
 按`F5`开始调试即可，按照自己的情况，单步跳过`（F10）`、单步调试`（F11）`断点调试。
+
+其实开源项目一般都有贡献指南`axios/CONTRIBUTING.md`，笔者只是把这个指南的基础上修改为引用`sourcemap`可调试。
 
 ## 先看 axios 结构是怎样的
 
@@ -636,6 +676,7 @@ function throwIfCancellationRequested(config) {
  * @returns {Promise} The Promise to be fulfilled
  */
 module.exports = function dispatchRequest(config) {
+  // 取消相关
   throwIfCancellationRequested(config);
 
   // Ensure headers exist
@@ -673,6 +714,31 @@ module.exports = function dispatchRequest(config) {
 
 上文的代码里有个函数 `transformData` ，这里解释下。其实就是遍历传递的函数数组 对数据操作，最后返回数据。
 
+使用：
+
+```js
+var ISO_8601 = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z/;
+function formatDate(d) {
+  return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
+}
+
+axios.get('https://api.github.com/users/mzabriskie', {
+  transformResponse: axios.defaults.transformResponse.concat(function (data, headers) {
+    Object.keys(data).forEach(function (k) {
+      if (ISO_8601.test(data[k])) {
+        data[k] = new Date(Date.parse(data[k]));
+      }
+    });
+    return data;
+  })
+})
+.then(function (res) {
+  document.getElementById('created').innerHTML = formatDate(res.data.created_at);
+});
+```
+
+源码：
+
 ```js
 module.exports = function transformData(data, headers, fns) {
   /*eslint no-param-reassign:0*/
@@ -708,6 +774,7 @@ module.exports = function transformData(data, headers, fns) {
     return response;
   }, function onAdapterRejection(reason) {
     if (!isCancel(reason)) {
+      // 取消相关
       throwIfCancellationRequested(config);
 
       // Transform response data
@@ -755,8 +822,6 @@ var defaults = {
   // ...
 };
 ```
-
-可以发现
 
 `xhr`
 
@@ -816,6 +881,8 @@ module.exports = function xhrAdapter(config) {
 
 `http`
 
+`http`就不详细叙述了。
+
 ```js
 module.exports = function httpAdapter(config) {
   return new Promise(function dispatchHttpRequest(resolvePromise, rejectPromise) {
@@ -853,7 +920,7 @@ TODO:
 [[译]axios 是如何封装 HTTP 请求的](https://juejin.im/post/5d906269f265da5ba7451b02)<br>
 [知乎@Lee : TypeScript 重构 Axios 经验分享](https://zhuanlan.zhihu.com/p/50859466)
 
-## 笔者精选文章
+## 笔者另一个系列
 
 [面试官问：JS的继承](https://juejin.im/post/5c433e216fb9a049c15f841b)<br>
 [面试官问：JS的this指向](https://juejin.im/post/5c0c87b35188252e8966c78a)<br>
@@ -864,7 +931,7 @@ TODO:
 ## 关于
 
 作者：常以**若川**为名混迹于江湖。前端路上 | PPT爱好者 | 所知甚少，唯善学。<br>
-[个人博客-若川](https://lxchuan12.cn/posts/)，使用`vuepress`重构了，阅读体验可能更好些<br>
+[若川的博客](https://lxchuan12.cn/posts/)，使用`vuepress`重构了，阅读体验可能更好些<br>
 [掘金专栏](https://juejin.im/user/57974dc55bbb500063f522fd/posts)，欢迎关注~<br>
 [`segmentfault`前端视野专栏](https://segmentfault.com/blog/lxchuan12)，欢迎关注~<br>
 [知乎前端视野专栏](https://zhuanlan.zhihu.com/lxchuan12)，欢迎关注~<br>
