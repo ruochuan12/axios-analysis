@@ -11,31 +11,29 @@
 >4.[学习 sentry 源码整体架构，打造属于自己的前端异常监控SDK](https://juejin.im/post/5dba5a39e51d452a2378348a)<br>
 >5.[学习 vuex 源码整体架构，打造属于自己的状态管理库](https://juejin.im/post/5dd4e61a6fb9a05a5c010af0)<br>
 
-感兴趣的读者可以点击阅读。本文比较长，建议收藏后在电脑上阅读，安装文中调试方式自己执行或许更能吸收消化。
+感兴趣的读者可以点击阅读。本文比较长，手机上阅读，可以直接文中的几张图即可。建议收藏后在电脑上阅读，按照文中调试方式自己调试或许更容易吸收消化。
 
 TODO:
 **导读**<br>
 
 本文学习的版本是`v0.19.0`。克隆的官方仓库的`master`分支。
-截至目前（2019年12月），最新一次`commit`是`a17c70cb5ae4acd7`，`Fix CI build failure (#2570)`。
+截至目前（2019年12月10日），最新一次`commit`是`2019-12-09 15:52 ZhaoXC` `dc4bc49673943e352`，`fix: fix ignore set withCredentials false (#2582)`。
 
 本文仓库在这里[若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)。求个`star`呀。
 
 TODO: 提问
 
-4.怎么实现
-5.简述 `axios` 流程
-
-axios-analysis
+1. 为什么 `axios` 既可以当函数调用，也可以当对象使用，比如`axios.get`。<br>
+2. 简述 `axios` 调用流程。<br>
 
 ## chrome 和 vscode 调试 axios 源码方法
 
 前不久，笔者在知乎回答了一个问题[一年内的前端看不懂前端框架源码怎么办？](https://www.zhihu.com/question/350289336/answer/910970733)
-主要有四点：<br>
->1.借助调试<br>
->2.搜索查阅相关高赞文章<br>
->3.把不懂的地方记录下来，查阅相关文档<br>
->4.总结<br>
+阅读量还不错，大家有兴趣可以看看。主要有四点：<br>
+>1. 借助调试<br>
+>2. 搜索查阅相关高赞文章<br>
+>3. 把不懂的地方记录下来，查阅相关文档<br>
+>4. 总结<br>
 
 看源码，调试很重要，所以笔者写下 `axios` 源码调试方法，帮助一些可能不知道如何调试的读者。
 
@@ -57,7 +55,7 @@ npm start
 
 本文就是通过上述的例子`axios/sandbox/client.html`来调试的。
 
-顺便简单提下调试`example`的例子，虽然文章最开始时写了，后来又删了，最后想想还是加下。
+顺便简单提下调试`example`的例子，虽然文章最开始时写了这部分，后来又删了，最后想想还是写下。
 
 找到文件`axios/examples/server.js`，修改代码如下：
 
@@ -92,7 +90,7 @@ server = http.createServer(function (req, res) {
 node ./examples/server.js -p 5000
 ```
 
-打开[http://localhost:5000](http://localhost:5000)，然后就可以开心的调试`examples`。
+打开[http://localhost:5000](http://localhost:5000)，然后就可以开心的调试`examples`里的例子了。
 
 ### vscode 调试 node 环境的 axios
 
@@ -121,7 +119,7 @@ node ./examples/server.js -p 5000
 
 按`F5`开始调试即可，按照自己的情况，单步跳过`（F10）`、单步调试`（F11）`断点调试。
 
-其实开源项目一般都有贡献指南`axios/CONTRIBUTING.md`，笔者只是把这个指南的基础上修改为引用`sourcemap`可调试。
+其实开源项目一般都有贡献指南`axios/CONTRIBUTING.md`，笔者只是把这个指南的基础上修改为引用`sourcemap`的文件可调试。
 
 ## 先看 axios 结构是怎样的
 
@@ -588,9 +586,9 @@ submit.onclick ((index):138)
 1. `Send Request` 按钮点击 `submit.onclick`<br>
 2. 调用 `axios` 函数实际上是调用 `Axios.prototype.request` 函数，而这个函数使用 `bind` 返回的一个名为`wrap`的函数。<br>
 3. 调用 `Axios.prototype.request`<br>
-4. 执行拦截器 dispatchRequest<br>
-5. dispatchRequest 之后调用 adapter (xhrAdapter)<br>
-6. 最后调用 dispatchXhrRequest<br>
+4. 执行拦截器 `dispatchRequest`<br>
+5. `dispatchRequest` 之后调用 `adapter (xhrAdapter)`<br>
+6. 最后调用 `Promise` 中的函数`dispatchXhrRequest`<br>
 
 如果仔细看了文章开始的`axios 结构关系图`，其实对这个流程也有大概的了解。
 
@@ -829,6 +827,8 @@ var defaults = {
 
 可能读者不了解可以参考[XMLHttpRequest MDN 文档](https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest)。
 
+主要提醒下两个`onabort`请求取消事件，`withCredentials`一个布尔值，用来指定跨域 Access-Control 请求是否应带有授权信息，如 cookie 或授权 header 头。
+
 这块代码有删减，具体可以看[axios 仓库 xhr.js](https://github.com/axios/axios/blob/master/lib/adapters/xhr.js)，也可以克隆我的`axios-analysis`仓库调试时具体分析。
 
 ```js
@@ -891,6 +891,8 @@ module.exports = function httpAdapter(config) {
 ```
 
 ## 流程图
+
+能读到最后，说明你已经超过很多人啦^_^
 
 文章写到这里就基本到接近尾声了。最后画张图总结下 `axios` 流程。TODO:
 
