@@ -342,7 +342,7 @@ module.exports = function spread(callback) {
 };
 ```
 
-上文
+上文`var context = new Axios(defaultConfig);`
 
 ### Axios
 
@@ -511,6 +511,18 @@ InterceptorManager.prototype.forEach = function forEach(fn) {
 
 上文叙述的调试时运行`npm start` 是用`axios/sandbox/client.html`路径的文件作为示例的。
 
+以下是一段这个文件中的代码。
+
+```js
+axios(options)
+.then(function (res) {
+  response.innerHTML = JSON.stringify(res.data, null, 2);
+})
+.catch(function (res) {
+  response.innerHTML = JSON.stringify(res.data, null, 2);
+});
+```
+
 ### 先看调用栈流程
 
 如果不想一步步调试，有个偷巧的方法。<br>
@@ -532,6 +544,18 @@ wrap (bind.js:10)
 submit.onclick ((index):138)
 ```
 
+简述下流程：<br>
+1. `Send Request` 按钮点击 `submit.onclick`<br>
+2. 调用 `axios` 函数实际上是调用 `Axios.prototype.request` 函数，而这个函数使用 `bind` 返回的一个名为`wrap`的函数。<br>
+3. 调用 `Axios.prototype.request`<br>
+4. 执行拦截器 dispatchRequest<br>
+5. dispatchRequest 之后调用 adapter (xhrAdapter)<br>
+6. 最后调用 dispatchXhrRequest<br>
+
+如果仔细看了文章开始的`axios 结构关系图`，其实对这个流程也有大概的了解。
+
+接下来看 `Axios.prototype.request` 具体实现。
+
 ### Axios.prototype.request 请求核心方法
 
 ```js
@@ -547,11 +571,11 @@ Axios.prototype.request = function request(config) {
     config = config || {};
   }
 
- // 合并默认参数和用户传递的参数
+  // 合并默认参数和用户传递的参数
   config = mergeConfig(this.defaults, config);
 
   // Set config.method
-  // 设置 请求方法。
+  // 设置 请求方法，默认 get 。
   if (config.method) {
     config.method = config.method.toLowerCase();
   } else if (this.defaults.method) {
@@ -615,9 +639,11 @@ module.exports = function dispatchRequest(config) {
   throwIfCancellationRequested(config);
 
   // Ensure headers exist
+  // 确保 headers 存在
   config.headers = config.headers || {};
 
   // Transform request data
+  // 转换请求的数据
   config.data = transformData(
     config.data,
     config.headers,
@@ -625,19 +651,47 @@ module.exports = function dispatchRequest(config) {
   );
 
   // Flatten headers
+  // 拍平 headers
   config.headers = utils.merge(
     config.headers.common || {},
     config.headers[config.method] || {},
     config.headers || {}
   );
 
+  // 以下这些方法 删除 headers
   utils.forEach(
     ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
     function cleanHeaderConfig(method) {
       delete config.headers[method];
     }
   );
+  // adapter 适配器部分 拆开 放在下文讲
+};
+```
 
+#### transformData 转换数据
+
+上文的代码里有个函数 `transformData` ，这里解释下。其实就是遍历传递的函数数组 对数据操作，最后返回数据。
+
+```js
+module.exports = function transformData(data, headers, fns) {
+  /*eslint no-param-reassign:0*/
+  utils.forEach(fns, function transform(fn) {
+    data = fn(data, headers);
+  });
+
+  return data;
+};
+```
+
+适配器，在设计模式中称之为适配器模式。讲个生活中简单的例子，大家就容易理解。
+
+我们常用以前手机耳机孔都是圆孔，而现在基本是耳机孔和充电接口合二为一。统一为`typec`。
+
+这时我们需要需要一个`typec转圆孔的转接口`，这就是适配器。
+
+```js
+  // adapter 适配器部分
   var adapter = config.adapter || defaults.adapter;
 
   return adapter(config).then(function onAdapterResolution(response) {
@@ -669,7 +723,6 @@ module.exports = function dispatchRequest(config) {
 
     return Promise.reject(reason);
   });
-};
 ```
 
 ### adapter 适配器 真正发送请求
@@ -707,12 +760,72 @@ var defaults = {
 
 `xhr`
 
+接下来就是我们熟悉的 `XMLHttpRequest` 对象。
+
+可能读者不了解可以参考[XMLHttpRequest MDN 文档](https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest)。
+
+这块代码有删减，具体可以看[axios 仓库 xhr.js](https://github.com/axios/axios/blob/master/lib/adapters/xhr.js)，也可以克隆我的`axios-analysis`仓库调试时具体分析。
+
 ```js
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
+    // 这块代码有删减
+    var request = new XMLHttpRequest();
+    request.open()
+    request.timeout = config.timeout;
+    // 监听 state 改变
+    request.onreadystatechange = function handleLoad() {
+      if (!request || request.readyState !== 4) {
+        return;
+      }
+      // ...
+    }
+    // 取消
+    request.onabort = function(){};
+    // 错误
+    request.onerror = function(){};
+    // 超时
+    request.ontimeout = function(){};
+    // cookies 跨域携带 cookies 面试官常喜欢考这个
+    // 一个布尔值，用来指定跨域 Access-Control 请求是否应带有授权信息，如 cookie 或授权 header 头。
+    // Add withCredentials to request if needed
+    if (config.withCredentials) {
+      request.withCredentials = true;
+    }
+
+    // 上传下载进度相关
+    // Handle progress if needed
+    if (typeof config.onDownloadProgress === 'function') {
+      request.addEventListener('progress', config.onDownloadProgress);
+    }
+
+    // Not all browsers support upload events
+    if (typeof config.onUploadProgress === 'function' && request.upload) {
+      request.upload.addEventListener('progress', config.onUploadProgress);
+    }
+
+    // Send the request
+    // 发送请求
+    request.send(requestData);
   });
 }
 ```
+
+而实际上现在 [`fetch`](https://developer.mozilla.org/zh-CN/docs/Web/API/Fetch_API/Using_Fetch) 支持的很好了，阿里开源的 [umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md) 请求库，就是用`fetch`封装的，而不是用`XMLHttpRequest`。
+最后总结时，大概讲述下 `umi-request` 和 `axios` 的区别。
+
+`http`
+
+```js
+module.exports = function httpAdapter(config) {
+  return new Promise(function dispatchHttpRequest(resolvePromise, rejectPromise) {
+  });
+};
+```
+
+## 流程图
+
+文章写到这里就基本到接近尾声了。最后画张图总结下 `axios` 流程。TODO:
 
 ## 总结
 
