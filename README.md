@@ -11,7 +11,9 @@
 >4.[学习 sentry 源码整体架构，打造属于自己的前端异常监控SDK](https://juejin.im/post/5dba5a39e51d452a2378348a)<br>
 >5.[学习 vuex 源码整体架构，打造属于自己的状态管理库](https://juejin.im/post/5dd4e61a6fb9a05a5c010af0)<br>
 
-感兴趣的读者可以点击阅读。本文比较长，手机上阅读，可以直接文中的几张图即可。建议收藏后在电脑上阅读，按照文中调试方式自己调试或许更容易吸收消化。
+感兴趣的读者可以点击阅读。下一篇可能是`vue-router`源码。
+
+本文比较长，手机上阅读，可以直接文中的几张图即可。建议收藏后在电脑上阅读，按照文中调试方式自己调试或许更容易吸收消化。
 
 TODO:
 **导读**<br>
@@ -35,7 +37,7 @@ TODO: 提问
 >3. 把不懂的地方记录下来，查阅相关文档<br>
 >4. 总结<br>
 
-看源码，调试很重要，所以笔者写下 `axios` 源码调试方法，帮助一些可能不知道如何调试的读者。
+看源码，调试很重要，所以笔者详细写下 `axios` 源码调试方法，帮助一些可能不知道如何调试的读者。
 
 ### chrome 调试浏览器环境 的 axios
 
@@ -90,7 +92,9 @@ server = http.createServer(function (req, res) {
 node ./examples/server.js -p 5000
 ```
 
-打开[http://localhost:5000](http://localhost:5000)，然后就可以开心的调试`examples`里的例子了。
+打开[http://localhost:5000](http://localhost:5000)，然后就可以开心的在`Chrome`浏览器中调试`examples`里的例子了。
+
+`axios` 是支持 `node` 环境发送请求的。接下来看如何用 `vscode` 调试 `node` 环境下的`axios`。
 
 ### vscode 调试 node 环境的 axios
 
@@ -130,7 +134,7 @@ npm install
 npm start
 ```
 
-按照上文说的调试方法，` npm start `后，直接在 `chrome` 浏览器中调试。
+按照上文说的调试方法， `npm start` 后，直接在 `chrome` 浏览器中调试。
 打开 http://localhost:3000，在控制台打印出`axios`，估计很多人都没打印出来看过。
 
 ```js
@@ -139,11 +143,15 @@ console.log({axios: axios});
 
 层层点开来看，`axios` 的结构是怎样的，先有一个大概印象。
 
-笔者画了一张图表示。
+笔者画了一张比较详细的图表示。
 
 ![axios 结构关系图](./images/axios-instance.png)
 
-看完结构图，接下来看具体源码的实现。可以跟着断点调试一下。
+看完结构图，如果看过`jQuery`源码，会发现其实跟`jQuery`源码设计类似。
+
+`jQuery` 别名 `$`，也既是函数，也是对象。比如`jQuery`使用。`$('#id')`, `$.ajax`。
+
+接下来看具体源码的实现。可以跟着断点调试一下。
 
 **断点调试要领：**<br>
 **赋值语句可以一步跳过，看返回值即可，后续详细再看。**<br>
@@ -153,7 +161,7 @@ console.log({axios: axios});
 
 ## axios 源码 初始化
 
-看源码第一步，先看`package.json`。一般都会申明`main`主入口文件。
+看源码第一步，先看`package.json`。一般都会申明 `main` 主入口文件。
 
 ```json
 // package.json
@@ -178,7 +186,7 @@ module.exports = require('./lib/axios');
 `axios.js`文件 代码相对比较多。分为三部分展开叙述。
 
 >1. 第一部分：引入一些工具函数`utils`、`Axios`构造函数、默认配置`defaults`等。<br>
->2. 第二部分：是生成实例对象 `axios`、`axios.Axios`、`axios.create`等<br>
+>2. 第二部分：是生成实例对象 `axios`、`axios.Axios`、`axios.create`等。<br>
 >3. 第三部分取消相关API实现，还有`all`、`spread`、导出等实现。<br>
 
 #### 第一部分
@@ -194,7 +202,7 @@ module.exports = require('./lib/axios');
 var utils = require('./utils');
 // 引入 bind 方法
 var bind = require('./helpers/bind');
-// 构造函数 Axios 核心
+// 核心构造函数 Axios
 var Axios = require('./core/Axios');
 // 合并配置方法
 var mergeConfig = require('./core/mergeConfig');
@@ -204,7 +212,7 @@ var defaults = require('./defaults');
 
 #### 第二部分
 
-是生成实例对象 `axios`、`axios.Axios`、`axios.create`等
+是生成实例对象 `axios`、`axios.Axios`、`axios.create`等。
 
 ```js
 /**
@@ -216,20 +224,16 @@ var defaults = require('./defaults');
 function createInstance(defaultConfig) {
   var context = new Axios(defaultConfig);
   var instance = bind(Axios.prototype.request, context);
-
   // Copy axios.prototype to instance
   utils.extend(instance, Axios.prototype, context);
-
   // Copy context to instance
   utils.extend(instance, context);
-
   return instance;
 }
 
 // Create the default instance to be exported
 // 导出 创建默认实例
 var axios = createInstance(defaults);
-
 // Expose Axios class to allow class inheritance
 // 暴露 Axios class 允许 class 继承 也就是可以 new axios.Axios()
 axios.Axios = Axios;
@@ -249,20 +253,36 @@ axios.create = function create(instanceConfig) {
 
 ```js
 'use strict';
-// 返回一个新的函数 wrap 
+// 返回一个新的函数 wrap
 module.exports = function bind(fn, thisArg) {
   return function wrap() {
     var args = new Array(arguments.length);
     for (var i = 0; i < args.length; i++) {
       args[i] = arguments[i];
     }
+    // 把 argument 对象放在数组 args 里
     return fn.apply(thisArg, args);
   };
 };
 ```
 
-传递两个参数函数和`thisArg`指向。
-把参数`arguments`生成数组，最后调用返回参数结构。
+传递两个参数函数和`thisArg`指向。<br>
+把参数`arguments`生成数组，最后调用返回参数结构。<br>
+其实现在 `apply` 支持 `arguments`这样的类数组对象了，不需要手动转数组。<br>
+那么为啥作者要转数组，为了性能？当时不支持？抑或是作者不知道？这就不得而知了。有读者知道欢迎评论区告诉我呀。<br>
+
+关于`apply`、`call`和`bind`等不是很熟悉的读者，可以看笔者的另一个`面试官问系列`。<br>
+[面试官问：能否模拟实现JS的bind方法](https://juejin.im/post/5bec4183f265da616b1044d7)<br>
+
+举个例子
+
+```js
+function fn(){
+  console.log.apply(console.log, arguments);
+}
+fn(1,2,3,4,5,6, '若川');
+// 1 2 3 4 5 6 '若川'
+```
 
 #### 工具方法之 utils.extend
 
@@ -287,6 +307,8 @@ function extend(a, b, thisArg) {
 }
 ```
 
+其实就是遍历参数 `b` 对象，复制到 `a` 对象上，如果是函数就是则用 `bind` 调用。
+
 #### 工具方法之 utils.forEach
 
 遍历数组和对象。设计模式称之为迭代器模式。很多源码都有类似这样的遍历函数。比如大家熟知的`jQuery` `$.each`。
@@ -298,16 +320,19 @@ function extend(a, b, thisArg) {
  */
 function forEach(obj, fn) {
   // Don't bother if no value provided
+  // 判断 null 和 undefined 直接返回
   if (obj === null || typeof obj === 'undefined') {
     return;
   }
 
   // Force an array if not already something iterable
+  // 如果不是对象，放在数组里。
   if (typeof obj !== 'object') {
     /*eslint no-param-reassign:0*/
     obj = [obj];
   }
 
+  // 是数组 则用for 循环，调用 fn 函数。参数类似 Array.prototype.forEach 的前三个参数。
   if (isArray(obj)) {
     // Iterate over array values
     for (var i = 0, l = obj.length; i < l; i++) {
@@ -315,6 +340,9 @@ function forEach(obj, fn) {
     }
   } else {
     // Iterate over object keys
+    // 用 for in 遍历对象，但 for in 会遍历原型链上可遍历的属性。
+    // 所以用 hasOwnProperty 来过滤自身属性了。
+    // 其实也可以用Object.keys来遍历，它不遍历原型链上可遍历的属性。
     for (var key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
         fn.call(null, obj[key], key, obj);
@@ -323,6 +351,8 @@ function forEach(obj, fn) {
   }
 }
 ```
+
+如果对`Object`相关的`API`不熟悉，可以查看我之前写过的一篇文章。[JavaScript 对象所有API解析](https://www.lxchuan12.cn/js-object-api/)
 
 #### 第三部分
 
@@ -355,9 +385,9 @@ module.exports.default = axios;
 假设你有这样的需求。
 
 ```js
- function f(x, y, z) {}
- var args = [1, 2, 3];
- f.apply(null, args);
+function f(x, y, z) {}
+var args = [1, 2, 3];
+f.apply(null, args);
 ```
 
 那么可以用`spread`方法。用法：
@@ -380,9 +410,9 @@ module.exports = function spread(callback) {
 };
 ```
 
-上文`var context = new Axios(defaultConfig);`
+上文`var context = new Axios(defaultConfig);`，接下来介绍核心构造函数`Axios`。
 
-### Axios
+### 核心构造函数 Axios
 
 `lib/core/Axios.js`
 
@@ -390,7 +420,9 @@ module.exports = function spread(callback) {
 
 ```js
 function Axios(instanceConfig) {
+  // 默认参数
   this.defaults = instanceConfig;
+  // 拦截器 请求和响应拦截器
   this.interceptors = {
     request: new InterceptorManager(),
     response: new InterceptorManager()
@@ -406,10 +438,13 @@ Axios.prototype.request = function(config){
   // code ...
   return promise;
 }
+// 这是获取Uri的函数，这里省略
 Axios.prototype.getUri = function(){}
 // 提供一些请求方法的别名
 // Provide aliases for supported request methods
 // 遍历执行
+// 也就是为啥我们可以 axios.get 等别名的方式调用，而且调用的是 Axios.prototype.request 方法
+// 这个也在上面的 axios 结构图上有所体现。
 utils.forEach(['delete', 'get', 'head', 'options'], function forEachMethodNoData(method) {
   /*eslint func-names:0*/
   Axios.prototype[method] = function(url, config) {
@@ -434,10 +469,12 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 module.exports = Axios;
 ```
 
-### InterceptorManager 拦截器管理构造函数
+接下来看拦截器部分。
+
+### 拦截器管理构造函数 InterceptorManager
 
 请求前拦截，和请求后拦截。<br>
-在`Axios.prototype.request`函数里使用，具体怎么实现的拦截的，后文详细讲述。<br>
+在`Axios.prototype.request`函数里使用，具体怎么实现的拦截的，后文配合例子详细讲述。<br>
 
 [axios github 仓库 拦截器文档](https://github.com/axios/axios#interceptors)
 
@@ -708,13 +745,31 @@ module.exports = function dispatchRequest(config) {
 };
 ```
 
-#### transformData 转换数据
+#### dispatchRequest 之 取消模块
+
+可以使用`cancel token`取消请求。
+
+axios cancel token API 是基于撤销的 `promise` 取消提议。
+
+The axios cancel token API is based on the withdrawn [cancelable promises proposal.](https://github.com/tc39/proposal-cancelable-promises)
+
+[axios 文档 cancellation](https://github.com/axios/axios#cancellation)
+
+文档上详细描述了两种使用方式。
+
+throwIfCancellationRequested
+
+#### dispatchRequest 之 transformData 转换数据
 
 上文的代码里有个函数 `transformData` ，这里解释下。其实就是遍历传递的函数数组 对数据操作，最后返回数据。
+
+`axios.defaults.transformResponse` 数组中默认就有一个函数，所以使用`concat`链接自定义的函数。
 
 使用：
 
 ```js
+// 文件路径
+// axios/examples/transform-response/index.html
 var ISO_8601 = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z/;
 function formatDate(d) {
   return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
@@ -737,6 +792,8 @@ axios.get('https://api.github.com/users/mzabriskie', {
 
 源码：
 
+就是遍历数组，调用数组里的传递 `data` 和 `headers`参数调用函数。
+
 ```js
 module.exports = function transformData(data, headers, fns) {
   /*eslint no-param-reassign:0*/
@@ -747,6 +804,8 @@ module.exports = function transformData(data, headers, fns) {
   return data;
 };
 ```
+
+#### dispatchRequest 之 adapter 适配器部分
 
 适配器，在设计模式中称之为适配器模式。讲个生活中简单的例子，大家就容易理解。
 
@@ -790,13 +849,15 @@ module.exports = function transformData(data, headers, fns) {
   });
 ```
 
+接下来看具体的 `adapter`。
+
 ### adapter 适配器 真正发送请求
 
 ```js
 var adapter = config.adapter || defaults.adapter;
 ```
 
-看了上文的 `adapter`，可以知道支持用户自定义。比如可以通过微信小程序 `wx.request`的 也写一个 `adapter`。<br>
+看了上文的 `adapter`，可以知道支持用户自定义。比如可以通过微信小程序 `wx.request` 按照要求也写一个 `adapter`。<br>
 接着来看下 `defaults.ddapter`。<br>
 文件路径：`axios/lib/defaults.js`
 
@@ -827,7 +888,7 @@ var defaults = {
 
 可能读者不了解可以参考[XMLHttpRequest MDN 文档](https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest)。
 
-主要提醒下两个`onabort`请求取消事件，`withCredentials`一个布尔值，用来指定跨域 Access-Control 请求是否应带有授权信息，如 cookie 或授权 header 头。
+主要提醒下两个`onabort`请求取消事件，`withCredentials`一个布尔值，用来指定跨域 `Access-Control` 请求是否应带有授权信息，如 `cookie` 或授权 `header` 头。
 
 这块代码有删减，具体可以看[axios 仓库 xhr.js](https://github.com/axios/axios/blob/master/lib/adapters/xhr.js)，也可以克隆我的`axios-analysis`仓库调试时具体分析。
 
@@ -854,8 +915,8 @@ module.exports = function xhrAdapter(config) {
     // cookies 跨域携带 cookies 面试官常喜欢考这个
     // 一个布尔值，用来指定跨域 Access-Control 请求是否应带有授权信息，如 cookie 或授权 header 头。
     // Add withCredentials to request if needed
-    if (config.withCredentials) {
-      request.withCredentials = true;
+    if (!utils.isUndefined(config.withCredentials)) {
+      request.withCredentials = !!config.withCredentials;
     }
 
     // 上传下载进度相关
@@ -896,12 +957,33 @@ module.exports = function httpAdapter(config) {
 
 文章写到这里就基本到接近尾声了。最后画张图总结下 `axios` 流程。TODO:
 
+## 对比其他请求库
+
+### KoAjax
+
+FCC成都社区负责人水歌开源的[KoAJAX](https://github.com/EasyWebApp/KoAJAX)。
+
+[如何用开源软件办一场技术大会？](https://mp.weixin.qq.com/s/hxCwiokl4uPXJscTQi42-A)
+以下这篇文章中摘抄的一段。
+>前端请求库 —— KoAJAX
+>国内前端同学最常用的 HTTP 请求库应该是 axios 了吧？虽然它的 Interceptor（拦截器）API 是 .use()，但和 Node.js 的 Express、Koa 等框架的中间件模式完全不同，相比 jQuery .ajaxPrefilter()、dataFilter() 并没什么实质改进；上传、下载进度比 jQuery.Deferred() 还简陋，只是两个专门的回调选项。所以，它还是要对特定的需求记忆特定的 API，不够简洁。
+
+>幸运的是，水歌在研究如何[用 ES 2018 异步迭代器实现一个类 Koa 中间件引擎](https://tech-query.me/onion-stack/)的过程中，做出了一个更有实际价值的上层应用 —— KoAJAX。它的整个执行过程基于 Koa 式的中间件，而且它自己就是一个中间件调用栈。除了 RESTful API 常用的 .get()、.post()、.put()、.delete() 等快捷方法外，开发者就只需记住 .use() 和 next()，其它都是 ES 标准语法和 TS 类型推导。
+
+### umi-request 阿里开源的请求库
+
+[umi-request github 仓库](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md)
+
+`umi-request` 与 `fetch`, `axios` 异同。
+
+![`umi-request` 与 `fetch`, `axios` 异同。](./images/umi-request-image.png)
+
 ## 总结
 
 `Axios` 源码相对不多，打包后一千多行，比较容易看完，非常值得学习。
 
-[KoAJAX](https://github.com/EasyWebApp/KoAJAX)
-[umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md)
+既是函数，又是对象。
+`Axios` 源码中使用了挺多设计模式。比如迭代器模式、适配器模式等。如果想系统学习设计模式，一般比较推荐豆瓣评分9.1的[JavaScript设计模式与开发实践](https://book.douban.com/subject/26382780/)
 
 TODO:
 
@@ -913,14 +995,16 @@ TODO:
 
 [官方axios github 仓库](https://github.com/axios/axios)<br>
 
-写文章前，搜索了以下几篇文章泛读了一下。看懂了我这篇的基础上，有兴趣在对比看看以下这几篇，看起来也快。
+写文章前，搜索了以下几篇文章泛读了一下。有兴趣在对比看看以下这几篇，看懂了我这篇的基础上，看起来也快。
+
+一直觉得多搜索几篇文章看，对自己学习知识更有用。有个词语叫主题阅读。大概意思就是一个主题一系列阅读。
 
 [@叫我小明呀：Axios 源码解析](https://juejin.im/post/5cb5d9bde51d456e62545abc)<br>
 [@尼库尼库桑：深入浅出 axios 源码](https://zhuanlan.zhihu.com/p/37962469)<br>
 [@小贼先生_ronffy：Axios源码深度剖析 - AJAX新王者](https://juejin.im/post/5b0ba2d56fb9a00a1357a334)<br>
 [逐行解析Axios源码](https://juejin.im/post/5d501512518825159e3d7be6)<br>
 [[译]axios 是如何封装 HTTP 请求的](https://juejin.im/post/5d906269f265da5ba7451b02)<br>
-[知乎@Lee : TypeScript 重构 Axios 经验分享](https://zhuanlan.zhihu.com/p/50859466)
+[知乎@Lee : TypeScript 重构 Axios 经验分享](https://zhuanlan.zhihu.com/p/50859466)<br>
 
 ## 笔者另一个系列
 
@@ -941,6 +1025,6 @@ TODO:
 
 ## 欢迎加微信交流 微信公众号
 
-可能比较有趣的微信公众号，长按扫码关注。欢迎加笔者微信lxchuan12（注明来源，基本来者不拒），拉您进【前端视野交流群】，长期交流学习~
+可能比较有趣的微信公众号，长按扫码关注。欢迎加笔者微信`lxchuan12`（注明来源，基本来者不拒），拉您进【前端视野交流群】，长期交流学习~
 
 ![若川视野](https://github.com/lxchuan12/blog/raw/master/docs/about/wechat-official-accounts-mini.jpg)
