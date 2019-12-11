@@ -31,7 +31,7 @@ TODO: 提问
 ## chrome 和 vscode 调试 axios 源码方法
 
 前不久，笔者在知乎回答了一个问题[一年内的前端看不懂前端框架源码怎么办？](https://www.zhihu.com/question/350289336/answer/910970733)
-阅读量还不错，大家有兴趣可以看看。主要有四点：<br>
+推荐了一些资料，阅读量还不错，大家有兴趣可以看看。主要有四点：<br>
 >1. 借助调试<br>
 >2. 搜索查阅相关高赞文章<br>
 >3. 把不懂的地方记录下来，查阅相关文档<br>
@@ -87,7 +87,7 @@ server = http.createServer(function (req, res) {
 ```bash
 # 上述安装好依赖后
 # npm run examples 不能同时开启，默认都是3000端口
-# 可以指定端口 1000
+# 可以指定端口 5000
 # npm run examples ===  node ./examples/server.js
 node ./examples/server.js -p 5000
 ```
@@ -147,9 +147,9 @@ console.log({axios: axios});
 
 ![axios 结构关系图](./images/axios-instance.png)
 
-看完结构图，如果看过`jQuery`源码，会发现其实跟`jQuery`源码设计类似。
+看完结构图，如果看过`jQuery`、`underscore`和`lodash`源码，会发现其实跟`axios`源码设计类似。
 
-`jQuery` 别名 `$`，也既是函数，也是对象。比如`jQuery`使用。`$('#id')`, `$.ajax`。
+`jQuery` 别名 `$`，`underscore``loadsh`别名`（_）`也既是函数，也是对象。比如`jQuery`使用方式。`$('#id')`, `$.ajax`。
 
 接下来看具体源码的实现。可以跟着断点调试一下。
 
@@ -938,7 +938,7 @@ module.exports = function xhrAdapter(config) {
 ```
 
 而实际上现在 [`fetch`](https://developer.mozilla.org/zh-CN/docs/Web/API/Fetch_API/Using_Fetch) 支持的很好了，阿里开源的 [umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md) 请求库，就是用`fetch`封装的，而不是用`XMLHttpRequest`。
-最后总结时，大概讲述下 `umi-request` 和 `axios` 的区别。
+文章末尾，大概讲述下 `umi-request` 和 `axios` 的区别。
 
 `http`
 
@@ -985,7 +985,14 @@ FCC成都社区负责人水歌开源的[KoAJAX](https://github.com/EasyWebApp/Ko
 既是函数，又是对象。
 `Axios` 源码中使用了挺多设计模式。比如迭代器模式、适配器模式等。如果想系统学习设计模式，一般比较推荐豆瓣评分9.1的[JavaScript设计模式与开发实践](https://book.douban.com/subject/26382780/)
 
-TODO:
+TODO: 
+
+- [ ] 导读
+- [ ] 总结
+- [ ] dispatch 图
+- [ ] 流程图
+- [ ] 取消
+
 
 [若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)<br>
 
