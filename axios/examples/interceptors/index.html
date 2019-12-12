@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>axios - get example</title>
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+  </head>
+  <body class="container">
+    <h1>axios.get</h1>
+    <ul id="people" class="list-unstyled"></ul>
+
+    <script src="/axios.min.js"></script>
+    <script>
+      // 在 examples/get 的基础上，添加的拦截器 ------- start
+      // Add a request interceptor
+      axios.interceptors.request.use(function requestSuccess1(config) {
+          // Do something before request is sent
+          console.log('------request------success------1');
+          return config;
+        }, function requestError1(error) {
+          // Do something with request error
+          console.log('------response------error------1');
+          return Promise.reject(error);
+        });
+
+      // Add a response interceptor
+      axios.interceptors.response.use(function responseSuccess1(response) {
+          // Any status code that lie within the range of 2xx cause this function to trigger
+          // Do something with response data
+          console.log('------response------success------1');
+          return response;
+        }, function responseError1(error) {
+          console.log('------response------error------1');
+          // Any status codes that falls outside the range of 2xx cause this function to trigger
+          // Do something with response error
+          return Promise.reject(error);
+        });
+
+        axios.interceptors.request.use(function requestSuccess2(config) {
+          // Do something before request is sent
+          console.log('------request------success------2');
+          return config;
+        }, function requestError2(error) {
+          // Do something with request error
+          console.log('------response------error------2');
+          return Promise.reject(error);
+        });
+
+      // Add a response interceptor
+      axios.interceptors.response.use(function responseSuccess2(response) {
+          // Any status code that lie within the range of 2xx cause this function to trigger
+          // Do something with response data
+          console.log('------response------success------2');
+          return response;
+        }, function responseError2(error) {
+          console.log('------response------error------2');
+          // Any status codes that falls outside the range of 2xx cause this function to trigger
+          // Do something with response error
+          return Promise.reject(error);
+        });
+
+
+        // 在 examples/get 的基础上，添加的拦截器 -------- end
+
+      axios.get('/get/server')
+        .then(function (response) {
+          console.log('哈哈哈，终于获取到数据了', response);
+          document.getElementById('people').innerHTML = response.data.map(function (person) {
+            return (
+              '<li class="row">' +
+                '<img src="https://avatars.githubusercontent.com/u/' + person.avatar + '?s=50" class="col-md-1"/>' +
+                '<div class="col-md-3">' +
+                  '<strong>' + person.name + '</strong>' +
+                  '<div>Github: <a href="https://github.com/' + person.github + '" target="_blank">' + person.github + '</a></div>' +
+                  '<div>Twitter: <a href="https://twitter.com/' + person.twitter + '" target="_blank">' + person.twitter + '</a></div>' +
+                '</div>' +
+              '</li><br/>'
+            );
+          }).join('');
+        })
+        .catch(function (err) {
+          console.log('哎呀，怎么报错了', err);
+          document.getElementById('people').innerHTML = '<li class="text-danger">' + err.message + '</li>';
+        });
+    </script>
+  </body>
+</html>
