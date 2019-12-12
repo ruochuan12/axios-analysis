@@ -25,8 +25,13 @@ TODO:
 
 TODO: 提问
 
-1. 为什么 `axios` 既可以当函数调用，也可以当对象使用，比如`axios.get`。<br>
-2. 简述 `axios` 调用流程。<br>
+如果你是求职者，项目写了运用了`axios`，面试官可能会问你：
+>1. 为什么 `axios` 既可以当函数调用，也可以当对象使用，比如`axios.get`。<br>
+>2. 简述 `axios` 调用流程。<br>
+>3. 有用过拦截器吗？<br>
+>4. 有使用`axios`的取消功能吗？是怎么实现的<br>
+>5. 为什么支持浏览器中发送请求也支持`node`发送请求<br>
+诸如这类问题。
 
 ## chrome 和 vscode 调试 axios 源码方法
 
@@ -135,7 +140,7 @@ npm start
 ```
 
 按照上文说的调试方法， `npm start` 后，直接在 `chrome` 浏览器中调试。
-打开 http://localhost:3000，在控制台打印出`axios`，估计很多人都没打印出来看过。
+打开 [http://localhost:3000](http://localhost:3000)，在控制台打印出`axios`，估计很多人都没打印出来看过。
 
 ```js
 console.log({axios: axios});
@@ -222,12 +227,22 @@ var defaults = require('./defaults');
  * @return {Axios} A new instance of Axios
  */
 function createInstance(defaultConfig) {
+  // new 一个 Axios 生成实例对象
   var context = new Axios(defaultConfig);
+  // bind 返回一个新的 wrap 函数，
+  // 也就是为什么调用axios是调用Axios.prototype.request 函数的原因
   var instance = bind(Axios.prototype.request, context);
   // Copy axios.prototype to instance
+  // 复制 Axios.prototype 到实例上。
+  // 也就是为什么 有 axios.get 等别名方法，
+  // 且调用的是 Axios.prototype.get 等别名方法。
   utils.extend(instance, Axios.prototype, context);
   // Copy context to instance
+  // 复制 context 到 intance 实例
+  // 也就是为什么默认配置 axios.defaults 和拦截器  axios.interceptors 可以使用的原因
+  // 其实是new Axios().defaults 和 new Axios().interceptors
   utils.extend(instance, context);
+  // 最后返回实例对象，以上代码，在上文的图中都有体现。这时可以仔细看下上图。
   return instance;
 }
 
@@ -236,6 +251,7 @@ function createInstance(defaultConfig) {
 var axios = createInstance(defaults);
 // Expose Axios class to allow class inheritance
 // 暴露 Axios class 允许 class 继承 也就是可以 new axios.Axios()
+// 但  axios 文档中 并没有提到这个，我们平时也用得少。
 axios.Axios = Axios;
 
 // Factory for creating new instances
@@ -269,7 +285,7 @@ module.exports = function bind(fn, thisArg) {
 传递两个参数函数和`thisArg`指向。<br>
 把参数`arguments`生成数组，最后调用返回参数结构。<br>
 其实现在 `apply` 支持 `arguments`这样的类数组对象了，不需要手动转数组。<br>
-那么为啥作者要转数组，为了性能？当时不支持？抑或是作者不知道？这就不得而知了。有读者知道欢迎评论区告诉我呀。<br>
+那么为啥作者要转数组，为了性能？当时不支持？抑或是作者不知道？这就不得而知了。有读者知道欢迎评论区告诉笔者呀。<br>
 
 关于`apply`、`call`和`bind`等不是很熟悉的读者，可以看笔者的另一个`面试官问系列`。<br>
 [面试官问：能否模拟实现JS的bind方法](https://juejin.im/post/5bec4183f265da616b1044d7)<br>
@@ -352,7 +368,7 @@ function forEach(obj, fn) {
 }
 ```
 
-如果对`Object`相关的`API`不熟悉，可以查看我之前写过的一篇文章。[JavaScript 对象所有API解析](https://www.lxchuan12.cn/js-object-api/)
+如果对`Object`相关的`API`不熟悉，可以查看笔者之前写过的一篇文章。[JavaScript 对象所有API解析](https://www.lxchuan12.cn/js-object-api/)
 
 #### 第三部分
 
@@ -530,7 +546,7 @@ function InterceptorManager() {
 
 接下来声明了三个方法：使用、移除、遍历。
 
-#### InterceptorManager.prototype.use
+#### InterceptorManager.prototype.use 使用
 
 传递两个函数作为参数，返回数字 ID，用于移除拦截器
 
@@ -550,7 +566,7 @@ InterceptorManager.prototype.use = function use(fulfilled, rejected) {
 };
 ```
 
-#### InterceptorManager.prototype.eject
+#### InterceptorManager.prototype.eject 移除
 
 根据 use 返回的 ID 移除 拦截器
 
@@ -565,7 +581,7 @@ InterceptorManager.prototype.eject = function eject(id) {
 };
 ```
 
-#### InterceptorManager.prototype.forEach
+#### InterceptorManager.prototype.forEach 遍历
 
 遍历执行 拦截器
 
@@ -683,6 +699,29 @@ Axios.prototype.request = function request(config) {
   return promise;
 ```
 
+很遗憾，在`example`文件夹没有拦截器的例子。笔者在`example`中添加了一个拦截器的示例。`axios/examples/interceptors`，便于读者调试。
+
+```bash
+node ./examples/server.js -p 5000
+```
+
+`promise = promise.then(chain.shift(), chain.shift());`这段代码打个断点。
+
+会得到这样的这张图。
+![request方法中promise链](./images/request-promise-chain.png)
+
+特别关注下，右侧，`local`中的`chain`数组。
+
+```js
+chain = [
+  '请求成功拦截2', '请求失败拦截2',  
+  '请求成功拦截1', '请求失败拦截1',  
+  dispatch,  undefined, 
+  '响应成功拦截1', '响应失败拦截1', 
+  '响应成功拦截2', '响应失败拦截2',
+]
+```
+
 这段代码相对比较绕，但其实也容易懂，笔者画了一张图表示TODO:。最后会调用`dispatchRequest`方法。
 
 ### dispatchRequest 最终派发请求
@@ -767,9 +806,12 @@ throwIfCancellationRequested
 
 使用：
 
+文件路径
+`axios/examples/transform-response/index.html`
+
+这段代码其实就是对时间格式的字符串转换成时间对象，可以直接调用`getMonth`等方法。
+
 ```js
-// 文件路径
-// axios/examples/transform-response/index.html
 var ISO_8601 = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z/;
 function formatDate(d) {
   return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
@@ -805,7 +847,7 @@ module.exports = function transformData(data, headers, fns) {
 };
 ```
 
-#### dispatchRequest 之 adapter 适配器部分
+#### dispatchRequest 之 adapter 适配器执行部分
 
 适配器，在设计模式中称之为适配器模式。讲个生活中简单的例子，大家就容易理解。
 
@@ -888,9 +930,9 @@ var defaults = {
 
 可能读者不了解可以参考[XMLHttpRequest MDN 文档](https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest)。
 
-主要提醒下两个`onabort`请求取消事件，`withCredentials`一个布尔值，用来指定跨域 `Access-Control` 请求是否应带有授权信息，如 `cookie` 或授权 `header` 头。
+主要提醒下：`onabort`是请求取消事件，`withCredentials`是一个布尔值，用来指定跨域 `Access-Control` 请求是否应带有授权信息，如 `cookie` 或授权 `header` 头。
 
-这块代码有删减，具体可以看[axios 仓库 xhr.js](https://github.com/axios/axios/blob/master/lib/adapters/xhr.js)，也可以克隆我的`axios-analysis`仓库调试时具体分析。
+这块代码有删减，具体可以看[axios 仓库 xhr.js](https://github.com/axios/axios/blob/master/lib/adapters/xhr.js)，也可以克隆笔者的`axios-analysis`仓库调试时具体分析。
 
 ```js
 module.exports = function xhrAdapter(config) {
@@ -942,7 +984,7 @@ module.exports = function xhrAdapter(config) {
 
 `http`
 
-`http`就不详细叙述了。
+`http`这里就不详细叙述了，感兴趣的读者可以自行查看。
 
 ```js
 module.exports = function httpAdapter(config) {
@@ -978,6 +1020,8 @@ FCC成都社区负责人水歌开源的[KoAJAX](https://github.com/EasyWebApp/Ko
 
 ![`umi-request` 与 `fetch`, `axios` 异同。](./images/umi-request-image.png)
 
+不得不说，`umi-request` 确实强大，有兴趣的读者可以阅读下其源码。看懂`axios`的基础上，看懂`umi-request`源码应该不难。
+
 ## 总结
 
 `Axios` 源码相对不多，打包后一千多行，比较容易看完，非常值得学习。
@@ -1002,7 +1046,7 @@ TODO:
 
 [官方axios github 仓库](https://github.com/axios/axios)<br>
 
-写文章前，搜索了以下几篇文章泛读了一下。有兴趣在对比看看以下这几篇，看懂了我这篇的基础上，看起来也快。
+写文章前，搜索了以下几篇文章泛读了一下。有兴趣在对比看看以下这几篇，看懂了笔者这篇的基础上，看起来也快。
 
 一直觉得多搜索几篇文章看，对自己学习知识更有用。有个词语叫主题阅读。大概意思就是一个主题一系列阅读。
 
