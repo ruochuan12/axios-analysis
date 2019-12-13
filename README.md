@@ -257,7 +257,9 @@ axios.create = function create(instanceConfig) {
 };
 ```
 
-看完第二部分，里面涉及几个工具函数，如`bind`、`extend`。接下来讲述这几个工具方法。
+这里简述下工厂模式。`axios.create`，也就是用户不需要知道内部是怎么实现的。<br>
+举个生活的例子，我们买手机，不需要知道手机是怎么做的，就是工厂模式。<br>
+看完第二部分，里面涉及几个工具函数，如`bind`、`extend`。接下来讲述这几个工具方法。<br>
 
 #### 工具方法之 bind
 
@@ -918,9 +920,9 @@ if (config.cancelToken) {
 ```
 
 取消流程调用栈
->1.source.cancel()
->2.resolvePromise(token.reason);
->3.config.cancelToken.promise.then(function onCanceled(cancel) {})
+>1.source.cancel()<br>
+>2.resolvePromise(token.reason);<br>
+>3.config.cancelToken.promise.then(function onCanceled(cancel) {})<br>
 
 最后进入`request.abort();``reject(cancel);`
 
@@ -1162,7 +1164,7 @@ FCC成都社区负责人水歌开源的[KoAJAX](https://github.com/EasyWebApp/Ko
 
 axios 既是函数，又是对象。
 
-`axios` 源码中使用了挺多设计模式。比如迭代器模式、适配器模式等。如果想系统学习设计模式，一般比较推荐豆瓣评分9.1的[JavaScript设计模式与开发实践](https://book.douban.com/subject/26382780/)
+`axios` 源码中使用了挺多设计模式。比如工厂模式、迭代器模式、适配器模式等。如果想系统学习设计模式，一般比较推荐豆瓣评分9.1的[JavaScript设计模式与开发实践](https://book.douban.com/subject/26382780/)
 
 如果读者发现有不妥或可改善之处，再或者哪里没写明白的地方，欢迎评论指出。另外觉得写得不错，对您有些许帮助，可以点赞、评论、转发分享，也是对笔者的一种支持，非常感谢呀。
 
