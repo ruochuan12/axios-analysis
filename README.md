@@ -15,15 +15,13 @@
 
 本文比较长，手机上阅读，可以直接文中的几张图即可。建议收藏后在电脑上阅读，按照文中调试方式自己调试或许更容易吸收消化。
 
-TODO:
 **导读**<br>
+文章详细介绍了 axios 调试方法。详细介绍了 axios 构造函数，拦截器，取消等功能的实现。最后还对比了其他请求库。
 
 本文学习的版本是`v0.19.0`。克隆的官方仓库的`master`分支。
 截至目前（2019年12月10日），最新一次`commit`是`2019-12-09 15:52 ZhaoXC` `dc4bc49673943e352`，`fix: fix ignore set withCredentials false (#2582)`。
 
 本文仓库在这里[若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)。求个`star`呀。
-
-TODO: 提问
 
 如果你是求职者，项目写了运用了`axios`，面试官可能会问你：
 >1. 为什么 `axios` 既可以当函数调用，也可以当对象使用，比如`axios.get`。<br>
@@ -161,8 +159,6 @@ console.log({axios: axios});
 **断点调试要领：**<br>
 **赋值语句可以一步跳过，看返回值即可，后续详细再看。**<br>
 **函数执行需要断点跟着看，也可以结合注释和上下文倒推这个函数做了什么。**<br>
-
-## axios 原理
 
 ## axios 源码 初始化
 
@@ -699,7 +695,7 @@ Axios.prototype.request = function request(config) {
   return promise;
 ```
 
-很遗憾，在`example`文件夹没有拦截器的例子。笔者在`example`中添加了一个拦截器的示例。`axios/examples/interceptors`，便于读者调试。
+很遗憾，在`example`文件夹没有拦截器的例子。笔者在`example`中在`example/get`的基础上添加了一个拦截器的示例。`axios/examples/interceptors`，便于读者调试。
 
 ```bash
 node ./examples/server.js -p 5000
@@ -712,17 +708,31 @@ node ./examples/server.js -p 5000
 
 特别关注下，右侧，`local`中的`chain`数组。
 
+也就是这样的结构。
+
 ```js
-chain = [
+var chain = [
   '请求成功拦截2', '请求失败拦截2',  
   '请求成功拦截1', '请求失败拦截1',  
-  dispatch,  undefined, 
-  '响应成功拦截1', '响应失败拦截1', 
+  dispatch,  undefined,
+  '响应成功拦截1', '响应失败拦截1',
   '响应成功拦截2', '响应失败拦截2',
 ]
 ```
 
-这段代码相对比较绕，但其实也容易懂，笔者画了一张图表示TODO:。最后会调用`dispatchRequest`方法。
+这段代码相对比较绕。
+
+中间会调用`dispatchRequest`方法。
+
+```js
+promise.then('请求成功拦截2', '请求失败拦截2')
+.then('请求成功拦截1', '请求失败拦截1')
+.then(dispatchRequest, undefined)
+.then('响应成功拦截1', '响应失败拦截1')
+.then('响应成功拦截2', '响应失败拦截2')
+```
+
+dispatchRequest(config) 这里的`config`是请求成功拦截返回的。
 
 ### dispatchRequest 最终派发请求
 
@@ -796,7 +806,123 @@ The axios cancel token API is based on the withdrawn [cancelable promises propos
 
 文档上详细描述了两种使用方式。
 
-throwIfCancellationRequested
+很遗憾，在`example`文件夹也没有取消的例子。笔者在`example`中在`example/get`的基础上添加了一个取消的示例。`axios/examples/cancel`，便于读者调试。
+
+```bash
+node ./examples/server.js -p 5000
+```
+
+`request`中的拦截器和`dispatch`中的取消这两个模块相对复杂，可以多调试调试，吸收消化。
+
+```js
+const CancelToken = axios.CancelToken;
+const source = CancelToken.source();
+
+axios.get('/get/server', {
+  cancelToken: source.token
+}).catch(function (err) {
+  if (axios.isCancel(err)) {
+    console.log('Request canceled', err.message);
+  } else {
+    // handle error
+  }
+});
+
+// cancel the request (the message parameter is optional)
+// 取消函数。
+source.cancel('Operation canceled by the user.');
+```
+
+```js
+// 通过 CancelToken 来取消请求操作
+function CancelToken(executor) {
+  if (typeof executor !== 'function') {
+    throw new TypeError('executor must be a function.');
+  }
+
+  var resolvePromise;
+  this.promise = new Promise(function promiseExecutor(resolve) {
+    resolvePromise = resolve;
+  });
+
+  var token = this;
+  executor(function cancel(message) {
+    if (token.reason) {
+      // Cancellation has already been requested
+      // 已经取消
+      return;
+    }
+
+    token.reason = new Cancel(message);
+    resolvePromise(token.reason);
+  });
+}
+
+/**
+ * 如果请求已经取消，抛出 Cancel 异常
+ */
+CancelToken.prototype.throwIfRequested = function throwIfRequested() {
+  if (this.reason) {
+    throw this.reason;
+  }
+};
+
+/**
+ * 通过 source 来返回 CancelToken 实例和取消 CancelToken 的函数
+ */
+CancelToken.source = function source() {
+  var cancel;
+  var token = new CancelToken(function executor(c) {
+    cancel = c;
+  });
+  return {
+    token: token,
+    cancel: cancel
+  };
+};
+
+module.exports = CancelToken;
+```
+
+```js
+function throwIfCancellationRequested(config) {
+  if (config.cancelToken) {
+    config.cancelToken.throwIfRequested();
+  }
+}
+// 抛出异常
+CancelToken.prototype.throwIfRequested = function throwIfRequested() {
+  if (this.reason) {
+    throw this.reason;
+  }
+};
+```
+
+发送请求的适配器里是这样使用的。
+
+```js
+// xhr
+if (config.cancelToken) {
+  // Handle cancellation
+  config.cancelToken.promise.then(function onCanceled(cancel) {
+    if (!request) {
+      return;
+    }
+
+    request.abort();
+    reject(cancel);
+    // Clean up request
+    request = null;
+  });
+}
+```
+
+取消流程调用栈
+>1.source.cancel()
+>2.resolvePromise(token.reason);
+>3.config.cancelToken.promise.then(function onCanceled(cancel) {})
+
+最后进入`request.abort();``reject(cancel);`
 
 #### dispatchRequest 之 transformData 转换数据
 
@@ -993,11 +1119,9 @@ module.exports = function httpAdapter(config) {
 };
 ```
 
-## 流程图
-
 能读到最后，说明你已经超过很多人啦^_^
 
-文章写到这里就基本到接近尾声了。最后画张图总结下 `axios` 流程。TODO:
+文章写到这里就基本到接近尾声了。
 
 ## 对比其他请求库
 
@@ -1018,27 +1142,27 @@ FCC成都社区负责人水歌开源的[KoAJAX](https://github.com/EasyWebApp/Ko
 
 `umi-request` 与 `fetch`, `axios` 异同。
 
-![`umi-request` 与 `fetch`, `axios` 异同。](./images/umi-request-image.png)
+![`umi-request` 与 `fetch`, `axios` 异同](./images/umi-request-image.png)
 
-不得不说，`umi-request` 确实强大，有兴趣的读者可以阅读下其源码。看懂`axios`的基础上，看懂`umi-request`源码应该不难。
+不得不说，`umi-request` 确实强大，有兴趣的读者可以阅读下其源码。
+
+看懂`axios`的基础上，看懂`umi-request`源码应该不难。
+
+比如 `umi-request` 取消模块代码几乎与`axios`一模一样。
 
 ## 总结
 
-`Axios` 源码相对不多，打包后一千多行，比较容易看完，非常值得学习。
+文章详细介绍了 `axios` 调试方法。详细介绍了 axios 构造函数，拦截器，取消等功能的实现。最后还对比了其他请求库。
 
-既是函数，又是对象。
-`Axios` 源码中使用了挺多设计模式。比如迭代器模式、适配器模式等。如果想系统学习设计模式，一般比较推荐豆瓣评分9.1的[JavaScript设计模式与开发实践](https://book.douban.com/subject/26382780/)
+`axios` 源码相对不多，打包后一千多行，比较容易看完，非常值得学习。
 
-TODO: 
+建议 `clone` [若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)，按照文中方法自己调试<br>
 
-- [ ] 导读
-- [ ] 总结
-- [ ] dispatch 图
-- [ ] 流程图
-- [ ] 取消
+基于`Promise`，`request`中的拦截器和`dispatch`中的取消这两个模块相对复杂，可以多调试调试，吸收消化。
 
+axios 既是函数，又是对象。
 
-[若川的 axios-analysis github 仓库](https://github.com/lxchuan12/axios-analysis)<br>
+`axios` 源码中使用了挺多设计模式。比如迭代器模式、适配器模式等。如果想系统学习设计模式，一般比较推荐豆瓣评分9.1的[JavaScript设计模式与开发实践](https://book.douban.com/subject/26382780/)
 
 如果读者发现有不妥或可改善之处，再或者哪里没写明白的地方，欢迎评论指出。另外觉得写得不错，对您有些许帮助，可以点赞、评论、转发分享，也是对笔者的一种支持，非常感谢呀。
 
@@ -1046,7 +1170,7 @@ TODO:
 
 [官方axios github 仓库](https://github.com/axios/axios)<br>
 
-写文章前，搜索了以下几篇文章泛读了一下。有兴趣在对比看看以下这几篇，看懂了笔者这篇的基础上，看起来也快。
+写文章前，搜索了以下几篇文章泛读了一下。有兴趣在对比看看以下这几篇，有代码调试的基础上，看起来也快。
 
 一直觉得多搜索几篇文章看，对自己学习知识更有用。有个词语叫主题阅读。大概意思就是一个主题一系列阅读。
 
