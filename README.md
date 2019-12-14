@@ -648,7 +648,7 @@ submit.onclick ((index):138)
 ### Axios.prototype.request 请求核心方法
 
 这个函数是核心函数。
-主要做了三件事：
+主要做了这几件事：
 >1. 判断第一个参数是字符串，则设置 url,也就是支持`axios('example/url', [, config])`，也支持`axios({})`。<br>
 >2. 合并默认参数和用户传递的参数<br>
 >3. 设置请求的方法，默认是是`get`方法<br>
