@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <title>axios - get example</title>
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+  </head>
+  <body class="container">
+    <h1>axios.get</h1>
+    <ul id="people" class="list-unstyled"></ul>
+    <h1>简单取消例子 cancel-token</h1>
+    <a  target="_blank" href="https://github.com/lxchuan12/axios-analysis">axios-analysis 仓库</a>
+    <script>
+        // source.cancel('哎呀，我被若川取消了');
+        // 点击取消时才会 生成 cancelToken 实例对象。
+        // 点击取消后，会生成原因，看懂了这段在看之后的源码，可能就好理解了。
+        var config = {
+          name: '若川',
+          // 这里简化了
+          cancelToken: {
+                promise: new Promise(function(resolve){
+                    resolve({ message: '哎呀，我被若川取消了'})
+                }),
+                reason: { message: '哎呀，我被若川取消了' }
+         },
+        };
+        // 取消 抛出异常方法
+        function throwIfCancellationRequested(config){
+          // 取消的情况下执行这句
+          if(config.cancelToken){
+            //   这里源代码 便于执行，我改成具体代码
+            // config.cancelToken.throwIfRequested();
+            // if (this.reason) {
+            //     throw this.reason;
+            //   }
+            if(config.cancelToken.reason){
+                throw config.cancelToken.reason;
+            }
+          }
+        }
+
+        function dispatchRequest(config){
+          // 有可能是执行到这里就取消了，所以抛出错误会被err2 捕获到
+          throwIfCancellationRequested(config);
+          //  adapter xhr适配器
+          return new Promise((resovle, reject) => {
+            var request = new XMLHttpRequest();
+            console.log('request', request);
+            if (config.cancelToken) {
+                // Handle cancellation
+                config.cancelToken.promise.then(function onCanceled(cancel) {
+                    if (!request) {
+                       return;
+                    }
+
+                    request.abort();
+                    reject(cancel);
+                    // Clean up request
+                    request = null;
+                });
+            }
+          })
+          .then(function(res){
+            // 有可能是执行到这里就才取消 取消的情况下执行这句
+            throwIfCancellationRequested(config);
+            console.log('res', res);
+            return res;
+          })
+          .catch(function(reason){
+            // 有可能是执行到这里就才取消 取消的情况下执行这句
+            throwIfCancellationRequested(config);
+            console.log('reason', reason);
+            return Promise.reject(reason);
+          });
+        }
+
+        var promise = Promise.resolve(config);
+
+        // 没设置拦截器的情况下是这样的
+        promise
+        .then(dispatchRequest, undefined)
+        // 用户定义的then 和 catch
+        .then(function(res){
+          console.log('res1', res);
+          return res;
+        })
+        .catch(function(err){
+          console.log('err2', err);
+          return Promise.reject(err);
+        });
+        //  err2 {message: "哎呀，我被若川取消了"}
+    </script>
+  </body>
+</html>
