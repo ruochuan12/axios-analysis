@@ -49,6 +49,12 @@ _info '
 -------------------------------------
 '
 
+cd ../blog/
+# git
+git pull
+git status
+
+cd ../axios-analysis
 
 rsync -av --exclude  .git/ --exclude  axios/ --exclude shells/  .  ../blog/docs/axios
 
