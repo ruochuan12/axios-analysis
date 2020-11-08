@@ -523,7 +523,7 @@ axios.interceptors.response.use(function (response) {
 });
 ```
 
-如果想把拦截器，可以用`eject`方法。
+如果想把拦截器移除，可以用`eject`方法。
 
 ```js
 const myInterceptor = axios.interceptors.request.use(function () {/*...*/});
